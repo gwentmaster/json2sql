@@ -32,6 +32,8 @@ def judge_file(file: str, type_: str) -> bool:
 
 def judge_type(data: str) -> Union[int, float, str]:
 
+    if data in ("null", "NULL"):
+        return None
     try:
         result = int(data)
         return result
@@ -92,7 +94,9 @@ def sql2json(sql_file: str, target: str = "data.json") -> None:
         print("not a sql file")
         return
 
-    pattern = re.compile(r"INSERT\sINTO\s(.+)\s\((.+)\)[\s\n]+VALUES\s\((.+)\)")
+    pattern = re.compile(
+        r"INSERT\sINTO\s(.+)\s\((.+)\)[\s\n]+VALUES\s\((.+)\)"
+    )
 
     data_dic = defaultdict(list)
 
@@ -111,7 +115,10 @@ def sql2json(sql_file: str, target: str = "data.json") -> None:
                 data_dic[table].append(dict(zip(columns, values)))
 
     with open(target, "wb") as t:
-        t.write(json.dumps(data_dic, ensure_ascii=False, indent=2).encode("utf8"))
+        t.write(
+            json.dumps(data_dic, ensure_ascii=False, indent=2)
+            .encode("utf8")
+        )
 
 
 def _json2csv(data: Dict, key: str, target: str):
@@ -166,7 +173,11 @@ def json2csv(json_file: str, target: str = "data.csv") -> None:
     _json2csv(data, keys[choose], target)
 
 
-def csv2json(csv_file: str, target: str = "data.json", table: str = "data") -> None:
+def csv2json(
+    csv_file: str,
+    target: str = "data.json",
+    table: str = "data"
+) -> None:
 
     if not judge_file(csv_file, "csv"):
         print("not a csv file")

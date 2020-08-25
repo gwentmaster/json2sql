@@ -18,9 +18,6 @@ from typing import Any, Dict, List, Generator, Union
 import click
 
 
-# TODO 转为csv时支持将多个表的数据导出至不同文件
-
-
 TEMPLATE = "INSERT INTO {table} ({columns})\nVALUES ({values});\n\n"
 
 
@@ -117,6 +114,26 @@ def sql2json(sql_file: str, target: str = "data.json") -> None:
         t.write(json.dumps(data_dic, ensure_ascii=False, indent=2).encode("utf8"))
 
 
+def _json2csv(data: Dict, key: str, target: str):
+
+    columns = set()
+    data_li = []
+    for d in data[key]:
+        columns.update(d.keys())
+        temp_dic = defaultdict(lambda: "")  # type: Dict[str, Any]
+        temp_dic.update(d)
+        data_li.append(temp_dic)
+    columns = sorted(columns)
+    t = open(target, "wb")
+    t.write(f'{",".join(columns)}\n'.encode("utf-8"))
+    for d in data_li:
+        t.write(
+            f'{",".join(gen_value(d, columns, need_repr=False))}\n'
+            .encode("utf-8")
+        )
+    t.close()
+
+
 def json2csv(json_file: str, target: str = "data.csv") -> None:
 
     if not judge_file(json_file, "json"):
@@ -128,26 +145,25 @@ def json2csv(json_file: str, target: str = "data.csv") -> None:
 
     keys = list(data.keys())
     if len(keys) > 1:
-        for i, key in enumerate(keys):
-            print(f"{i}. {key}")
-        choose = int(input("请选择想转换的数据: "))
-        key = keys[choose]
+        while True:
+            try:
+                for i, key in enumerate(keys):
+                    print(f"{i}. {key}")
+                print(f"{len(keys)}. 全部")
+                choose = int(input("请选择想转换的数据: "))
+            except ValueError:
+                pass
+            else:
+                if choose in range(len(keys) + 1):
+                    break
+        if choose == len(keys):
+            for key in keys:
+                _json2csv(data, key, f"{key}.csv")
+            return None
     else:
-        key = keys[0]
+        choose = 0
 
-    columns = set()
-    data_li = []
-    for d in data[key]:
-        columns.update(d.keys())
-        temp_dic = defaultdict(lambda: "")  # type: Dict[str, Any]
-        temp_dic.update(d)
-        data_li.append(temp_dic)
-
-    columns = sorted(columns)
-    t = open(target, "wb")
-    t.write(f'{",".join(columns)}\n'.encode("utf8"))
-    for d in data_li:
-        t.write(f'{",".join(gen_value(d, columns, need_repr=False))}\n'.encode("utf8"))
+    _json2csv(data, keys[choose], target)
 
 
 def csv2json(csv_file: str, target: str = "data.json", table: str = "data") -> None:
